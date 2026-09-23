@@ -43,7 +43,7 @@
         <!-- Sticky control panel -->
         <div class="input-area">
 
-            <!-- Direction pad -->
+            <!-- Direction pad (always visible) -->
             <div class="dpad-grid">
                 <button class="dpad-btn" onclick="runCmd('go north')" title="North">&#9650;</button>
                 <button class="dpad-btn dpad-nw" onclick="runCmd('go up')" title="Up">&#9650;&#9650;</button>
@@ -54,10 +54,10 @@
                 <button class="dpad-btn" onclick="runCmd('go south')" title="South">&#9660;</button>
             </div>
 
-            <!-- Context-aware action panel (rebuilt by updateContextButtons) -->
+            <!-- Context-aware action panel (scrollable) -->
             <div id="actionPanel" class="action-panel"></div>
 
-            <!-- Text input -->
+            <!-- Text input (always visible) -->
             <form autocomplete="off" onsubmit="doCommand(); return false;" class="cmd-form">
                 <input type="text" id="command" class="cmd-input"
                        placeholder="Type a command&hellip;"
