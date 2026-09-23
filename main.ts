@@ -1209,6 +1209,8 @@ class Game {
         else
             ( < HTMLParagraphElement > document.getElementById("enemyHealth")).innerHTML = "";
 
+        // Rebuild context-aware action buttons after every command
+        if (typeof updateContextButtons === 'function') updateContextButtons();
     }
 
     // Send the gameStep to the screen
@@ -1216,17 +1218,15 @@ class Game {
         var gameTextDiv = ( < HTMLElement > document.getElementById('gameText'))
         var pElement = document.createElement("pre");
         // Browser compatible pre element word wrap
-        pElement.style.display = "table";
         pElement.style.whiteSpace = "pre-wrap";
-        pElement.style.whiteSpace = "-pre-wrap";
-        pElement.style.whiteSpace = "-o-pre-wrap";
-        pElement.style.whiteSpace = "-moz-pre-wrap";
         pElement.style.wordWrap = "break-word";
         for (var key in variables.gameStepText) {
             pElement.innerHTML += variables.gameStepText[key] + "\n";
         }
-        gameTextDiv.insertBefore(pElement, gameTextDiv.firstChild);
-
+        // Append (newest at bottom) so mobile users scroll naturally
+        gameTextDiv.appendChild(pElement);
+        // Auto-scroll to the latest output
+        gameTextDiv.scrollTop = gameTextDiv.scrollHeight;
     }
 }
 
@@ -2646,7 +2646,8 @@ window.onload = () => {
         navbarTabs.innerHTML += '<li id="game' + key + '" class="" onclick="changeGame(' + key + ')"><a href="#">' + game.name + '</a></li>';
     }
     // Focus on input
-    ( < HTMLElement > document.getElementById('controls')).innerHTML = Command.generateControlString();
+    var controlsEl = document.getElementById('controls');
+    if (controlsEl) controlsEl.innerHTML = Command.generateControlString();
     ( < HTMLInputElement > document.getElementById('command')).focus();
     changeGame(0);
 }

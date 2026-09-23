@@ -1,0 +1,416 @@
+/* ============================================================
+   MB Text Adventure – Mobile-first stylesheet
+   Palette: warm charcoal base, muted amber accents, slate text
+   ============================================================ */
+
+/* --- Reset / base ----------------------------------------- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    background: #1c1a17;
+    color: #c9c2b4;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    overflow: hidden;
+}
+
+/* ============================================================
+   Layout – full-height flex column
+   ============================================================ */
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================================
+   Reset confirmation modal
+   ============================================================ */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-backdrop.open {
+    display: flex;
+}
+
+.modal-box {
+    background: #1e1c18;
+    border: 1px solid #4a3e2e;
+    border-radius: 6px;
+    padding: 24px 28px;
+    max-width: 300px;
+    width: 90%;
+    text-align: center;
+}
+
+.modal-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: #c8a96e;
+    margin-bottom: 8px;
+}
+
+.modal-body {
+    font-size: 13px;
+    color: #8a7d6a;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.modal-btn {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.12s, color 0.12s;
+}
+
+.modal-btn.confirm {
+    background: #2e1a1a;
+    border-color: #5a2e2e;
+    color: #c08080;
+}
+
+.modal-btn.confirm:hover {
+    background: #3e2222;
+    color: #d09090;
+}
+
+.modal-btn.cancel {
+    background: #242018;
+    border-color: #3a3328;
+    color: #9a9080;
+}
+
+.modal-btn.cancel:hover {
+    background: #2e2a22;
+    color: #c9c2b4;
+}
+
+/* --- Header ------------------------------------------------ */
+.app-header {
+    background: #151310;
+    border-bottom: 1px solid #3a3328;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.app-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: #c8a96e;
+    letter-spacing: 2px;
+    white-space: nowrap;
+}
+
+.game-tabs {
+    list-style: none;
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.game-tabs li {
+    cursor: pointer;
+    padding: 2px 10px;
+    border: 1px solid #3a3328;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #8a7d6a;
+    transition: background 0.15s, color 0.15s;
+}
+
+.game-tabs li:hover,
+.game-tabs li.active {
+    background: #2a2620;
+    color: #c9c2b4;
+    border-color: #5a5040;
+}
+
+/* --- Main scrollable area ---------------------------------- */
+.app-main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* --- HUD strip --------------------------------------------- */
+.hud-strip {
+    background: #151310;
+    border-bottom: 1px solid #2e2a22;
+    padding: 5px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.hud-item {
+    color: #9a9080;
+}
+
+.hud-item b {
+    color: #b09060;
+}
+
+.hud-item.inv {
+    flex: 1 1 100%;
+}
+
+@media (min-width: 540px) {
+    .hud-item.inv {
+        flex: 1 1 auto;
+    }
+}
+
+/* --- Game text output ------------------------------------- */
+.game-text {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 10px 14px;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+.game-text pre {
+    display: block;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #c9c2b4;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 8px;
+    border-left: 2px solid #3a3328;
+    padding-left: 10px;
+}
+
+.game-text pre b {
+    color: #c8a96e;
+    font-weight: bold;
+}
+
+/* --- Input area (sticky bottom) --------------------------- */
+.input-area {
+    background: #151310;
+    border-top: 1px solid #3a3328;
+    padding: 8px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+/* --- D-pad ------------------------------------------------- */
+.dpad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, auto);
+    gap: 3px;
+    width: 144px;
+    align-self: center;
+}
+
+.dpad-btn {
+    background: #242018;
+    border: 1px solid #3a3328;
+    color: #9a9080;
+    border-radius: 4px;
+    padding: 7px 4px;
+    font-size: 14px;
+    cursor: pointer;
+    text-align: center;
+    line-height: 1;
+    touch-action: manipulation;
+    transition: background 0.12s, color 0.12s;
+    user-select: none;
+}
+
+.dpad-btn:hover  { background: #2e2a22; color: #c9c2b4; }
+.dpad-btn:active { background: #38321e; color: #c8a96e; }
+
+.dpad-grid > .dpad-btn:nth-child(1) { grid-row: 1; grid-column: 2; }
+.dpad-grid > .dpad-btn:nth-child(2) { grid-row: 1; grid-column: 1; }
+.dpad-grid > .dpad-btn:nth-child(3) { grid-row: 2; grid-column: 1; }
+.dpad-grid > .dpad-btn:nth-child(4) { grid-row: 2; grid-column: 2; }
+.dpad-grid > .dpad-btn:nth-child(5) { grid-row: 2; grid-column: 3; }
+.dpad-grid > .dpad-btn:nth-child(6) { grid-row: 3; grid-column: 3; }
+.dpad-grid > .dpad-btn:nth-child(7) { grid-row: 3; grid-column: 2; }
+
+.dpad-center { background: #1e1c14; font-size: 16px; }
+.dpad-nw, .dpad-dn { font-size: 10px; padding: 4px 2px; color: #6e6558; }
+
+/* ============================================================
+   Context-aware action panel
+   ============================================================ */
+.action-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+/* Each row = one verb + its object sub-buttons */
+.action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+/* Separator between verb rows and util row */
+.util-row {
+    border-top: 1px solid #2e2a22;
+    padding-top: 5px;
+    margin-top: 1px;
+}
+
+/* ---- Base button ----------------------------------------- */
+.action-btn {
+    background: #242018;
+    border: 1px solid #3a3328;
+    color: #9a9080;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    touch-action: manipulation;
+    transition: background 0.12s, color 0.12s;
+    user-select: none;
+    font-family: inherit;
+    line-height: 1.3;
+}
+
+.action-btn:hover  { background: #2e2a22; color: #c9c2b4; }
+.action-btn:active { background: #38321e; color: #c8a96e; }
+
+/* Non-interactive verb label (disabled primary label) */
+.action-btn.verb-label {
+    background: transparent;
+    border-color: transparent;
+    color: #6e6558;
+    font-style: italic;
+    cursor: default;
+    padding-left: 0;
+    max-width: none;
+}
+
+/* Primary verb button (when multiple targets exist) — slightly distinct */
+.action-btn.verb-primary {
+    background: #1e1c14;
+    border-color: #4a4030;
+    color: #8a7d60;
+    cursor: default;
+    font-weight: bold;
+}
+
+/* Danger (Reset) */
+.action-btn.danger {
+    border-color: #4a2e2e;
+    color: #8a6060;
+    background: #221a1a;
+}
+
+.action-btn.danger:hover  { background: #2e2020; color: #c08080; }
+.action-btn.danger:active { background: #3e2222; color: #c08080; }
+
+/* --- Command form ----------------------------------------- */
+.cmd-form {
+    display: flex;
+    gap: 6px;
+}
+
+.cmd-input {
+    flex: 1;
+    background: #1c1a17;
+    border: 1px solid #3a3328;
+    color: #c9c2b4;
+    font-family: inherit;
+    padding: 8px 10px;
+    border-radius: 4px;
+    outline: none;
+    caret-color: #c8a96e;
+    font-size: max(16px, 14px);
+    transition: border-color 0.15s;
+}
+
+.cmd-input::placeholder { color: #4a4438; }
+.cmd-input:focus        { border-color: #6a5e48; }
+
+.cmd-submit {
+    background: #242018;
+    border: 1px solid #3a3328;
+    color: #9a8060;
+    font-size: 18px;
+    padding: 0 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background 0.12s, color 0.12s;
+}
+
+.cmd-submit:hover  { background: #2e2a22; color: #c8a96e; }
+.cmd-submit:active { background: #38321e; }
+
+/* ============================================================
+   Desktop tweaks
+   ============================================================ */
+@media (min-width: 768px) {
+    html, body { font-size: 15px; }
+
+    .input-area {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    .dpad-grid {
+        align-self: flex-start;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .action-panel {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .cmd-form {
+        flex: 1 1 100%;
+    }
+}
+
+/* ============================================================
+   Scrollbar (Webkit)
+   ============================================================ */
+.game-text::-webkit-scrollbar       { width: 5px; }
+.game-text::-webkit-scrollbar-track { background: #1c1a17; }
+.game-text::-webkit-scrollbar-thumb { background: #3a3328; border-radius: 3px; }

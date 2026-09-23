@@ -1,39 +1,259 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MB Text Adventure</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/script.js"></script>
 </head>
 
 <body>
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <script src="js/script.js"></script>
 
-    <nav class="navbar navbar-default">
-        <div class="container-fluid">
-            <div class="navbar-header">
-                <a class="navbar-brand" href="#">MB TEXT ADVENTURE</a>
+    <!-- Reset confirmation modal -->
+    <div id="resetModal" class="modal-backdrop" aria-hidden="true">
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <p id="modalTitle" class="modal-title">Reset game?</p>
+            <p class="modal-body">All progress will be lost.</p>
+            <div class="modal-actions">
+                <button class="modal-btn confirm" onclick="confirmReset()">Reset</button>
+                <button class="modal-btn cancel"  onclick="closeModal()">Cancel</button>
             </div>
-            <ul class="nav navbar-nav" id="navbar-tabs">
-                
-            </ul>
-        </div>
-    </nav>
-
-    <div class="container-fluid">
-        <p id="controls"> </p>
-        <p id="inventory"><b>Inventory :</b></p>
-        <p id="health"><b>HP :</b></p>
-        <p id="enemyHealth"><b>HP :</b></p>
-        <form autocomplete="off" onsubmit="doCommand(); return false;">
-            <div class="form-group">
-                <input type="text" class="form-control" id="command" placeholder="Command">
-            </div>
-        </form>
-        <div id="gameText">
-            <p></p>
         </div>
     </div>
-</body>
 
+    <header class="app-header">
+        <span class="app-title">MB TEXT ADVENTURE</span>
+        <ul class="game-tabs" id="navbar-tabs"></ul>
+    </header>
+
+    <main class="app-main">
+
+        <!-- HUD strip -->
+        <div class="hud-strip">
+            <span id="health"      class="hud-item"><b>HP:</b></span>
+            <span id="enemyHealth" class="hud-item"></span>
+            <span id="inventory"   class="hud-item inv"><b>Inventory:</b></span>
+        </div>
+
+        <!-- Game output -->
+        <div id="gameText" class="game-text"></div>
+
+        <!-- Sticky control panel -->
+        <div class="input-area">
+
+            <!-- Direction pad -->
+            <div class="dpad-grid">
+                <button class="dpad-btn" onclick="runCmd('go north')" title="North">&#9650;</button>
+                <button class="dpad-btn dpad-nw" onclick="runCmd('go up')" title="Up">&#9650;&#9650;</button>
+                <button class="dpad-btn" onclick="runCmd('go west')"  title="West">&#9664;</button>
+                <button class="dpad-btn dpad-center" onclick="runCmd('look')" title="Look">&#128065;</button>
+                <button class="dpad-btn" onclick="runCmd('go east')"  title="East">&#9654;</button>
+                <button class="dpad-btn dpad-dn" onclick="runCmd('go down')" title="Down">&#9660;&#9660;</button>
+                <button class="dpad-btn" onclick="runCmd('go south')" title="South">&#9660;</button>
+            </div>
+
+            <!-- Context-aware action panel (rebuilt by updateContextButtons) -->
+            <div id="actionPanel" class="action-panel"></div>
+
+            <!-- Text input -->
+            <form autocomplete="off" onsubmit="doCommand(); return false;" class="cmd-form">
+                <input type="text" id="command" class="cmd-input"
+                       placeholder="Type a command&hellip;"
+                       autocorrect="off" autocapitalize="none" spellcheck="false">
+                <button type="submit" class="cmd-submit">&#9166;</button>
+            </form>
+
+        </div>
+    </main>
+
+    <script>
+    // ----------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------
+    function runCmd(str) {
+        document.getElementById('command').value = str;
+        doCommand();
+    }
+
+    function promptCmd(prefix) {
+        var input = document.getElementById('command');
+        input.value = prefix;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+    }
+
+    // ----------------------------------------------------------------
+    // Reset modal
+    // ----------------------------------------------------------------
+    function askReset() {
+        var m = document.getElementById('resetModal');
+        m.classList.add('open');
+        m.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeModal() {
+        var m = document.getElementById('resetModal');
+        m.classList.remove('open');
+        m.setAttribute('aria-hidden', 'true');
+    }
+
+    function confirmReset() {
+        closeModal();
+        runCmd('reset');
+    }
+
+    // Close on backdrop click
+    document.getElementById('resetModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // ----------------------------------------------------------------
+    // Context-aware action panel
+    // ----------------------------------------------------------------
+
+    // Commands that need an object, and whether the source is the room,
+    // the player's inventory, or both.
+    var VERB_CONFIG = [
+        // verb        label        source         always-show
+        { verb: 'take',    label: 'Take',    source: 'room',  always: true  },
+        { verb: 'examine', label: 'Examine', source: 'both',  always: true  },
+        { verb: 'open',    label: 'Open',    source: 'room',  always: true  },
+        { verb: 'kill',    label: 'Kill',    source: 'room',  always: true  },
+        { verb: 'put',     label: 'Put',     source: 'inv',   always: true  },
+        { verb: 'make',    label: 'Make',    source: 'inv',   always: false },
+    ];
+
+    // Utility: get shortDescription for a key from Interactible.interactibleList
+    function getDesc(key) {
+        try {
+            var inter = Interactible.interactibleList[key];
+            return inter ? inter.shortDescription : key;
+        } catch(e) { return key; }
+    }
+
+    // Returns array of {key, label} for items currently in the room
+    function getRoomItems() {
+        try {
+            var room = Room.currentRoom();
+            if (!room) return [];
+            return room.interactible.map(function(key) {
+                return { key: key, label: getDesc(key) };
+            });
+        } catch(e) { return []; }
+    }
+
+    // Returns array of {key, label} for items in player inventory
+    function getInventoryItems() {
+        try {
+            return player.inventory.map(function(key) {
+                return { key: key, label: getDesc(key) };
+            });
+        } catch(e) { return []; }
+    }
+
+    // Build the complete panel
+    function updateContextButtons() {
+        var panel = document.getElementById('actionPanel');
+        if (!panel) return;
+        panel.innerHTML = '';
+
+        var roomItems = getRoomItems();
+        var invItems  = getInventoryItems();
+
+        // ---- Object-verb rows ----------------------------------------
+        VERB_CONFIG.forEach(function(cfg) {
+            var targets = [];
+            if (cfg.source === 'room' || cfg.source === 'both')
+                targets = targets.concat(roomItems);
+            if (cfg.source === 'inv' || cfg.source === 'both')
+                targets = targets.concat(invItems);
+
+            // De-duplicate by key
+            var seen = {};
+            targets = targets.filter(function(t) {
+                if (seen[t.key]) return false;
+                seen[t.key] = true;
+                return true;
+            });
+
+            var row = document.createElement('div');
+            row.className = 'action-row';
+
+            if (targets.length === 0) {
+                // No specific targets — show a generic prompt button if always-show
+                if (cfg.always) {
+                    row.appendChild(makeVerbBtn(cfg.label + '…', cfg.verb + ' ', true));
+                }
+            } else if (targets.length === 1) {
+                // Exactly one target — direct button
+                var t = targets[0];
+                row.appendChild(makeVerbBtn(cfg.label + ' ' + t.label, cfg.verb + ' ' + t.label, false));
+            } else {
+                // Multiple targets — primary verb button + sub-buttons per target
+                var primary = makeVerbBtn(cfg.label, null, false);
+                primary.classList.add('verb-primary');
+                row.appendChild(primary);
+
+                targets.forEach(function(t) {
+                    row.appendChild(makeVerbBtn(t.label, cfg.verb + ' ' + t.label, false));
+                });
+            }
+
+            if (row.children.length > 0) panel.appendChild(row);
+        });
+
+        // ---- Utility row ---------------------------------------------
+        var utilRow = document.createElement('div');
+        utilRow.className = 'action-row util-row';
+
+        var utils = [
+            { label: 'Look',      cmd: 'look',      run: true  },
+            { label: 'Inventory', cmd: 'inventory',  run: true  },
+            { label: 'ls',        cmd: 'ls',         run: true  },
+            { label: 'Help',      cmd: 'help',       run: true  },
+            { label: 'Save',      cmd: 'save',       run: true  },
+            { label: 'Load',      cmd: 'load',       run: true  },
+            { label: 'Clear',     cmd: 'clear',      run: true  },
+            { label: 'Reset',     cmd: null,         run: false, danger: true },
+        ];
+
+        utils.forEach(function(u) {
+            var btn = document.createElement('button');
+            btn.className = 'action-btn' + (u.danger ? ' danger' : '');
+            btn.textContent = u.label;
+            if (u.run && u.cmd) {
+                btn.onclick = function() { runCmd(u.cmd); };
+            } else if (u.danger) {
+                btn.onclick = askReset;
+            }
+            utilRow.appendChild(btn);
+        });
+
+        panel.appendChild(utilRow);
+    }
+
+    // Create an action button; if cmd is null it's purely decorative/label
+    function makeVerbBtn(label, cmd, isPrompt) {
+        var btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.textContent = label;
+        btn.title = cmd || label;
+        if (cmd) {
+            if (isPrompt) {
+                btn.onclick = function() { promptCmd(cmd); };
+            } else {
+                btn.onclick = function() { runCmd(cmd); };
+            }
+        } else {
+            // Non-clickable label button
+            btn.className += ' verb-label';
+            btn.disabled = true;
+        }
+        return btn;
+    }
+    </script>
+
+</body>
 </html>

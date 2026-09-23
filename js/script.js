@@ -1,8 +1,13 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
     return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
@@ -1086,7 +1091,7 @@ function debug(string) {
         console.log("d:", string);
     }
 }
-var Game = (function () {
+var Game = /** @class */ (function () {
     function Game() {
     }
     Game.print = function (string) {
@@ -1200,27 +1205,29 @@ var Game = (function () {
             document.getElementById("enemyHealth").innerHTML = "<b>" + enemy.name + " HP :</b> " + enemy.health + "/" + enemy.maxHealth;
         else
             document.getElementById("enemyHealth").innerHTML = "";
+        // Rebuild context-aware action buttons after every command
+        if (typeof updateContextButtons === 'function')
+            updateContextButtons();
     };
     // Send the gameStep to the screen
     Game.updateGameScreen = function () {
         var gameTextDiv = document.getElementById('gameText');
         var pElement = document.createElement("pre");
         // Browser compatible pre element word wrap
-        pElement.style.display = "table";
         pElement.style.whiteSpace = "pre-wrap";
-        pElement.style.whiteSpace = "-pre-wrap";
-        pElement.style.whiteSpace = "-o-pre-wrap";
-        pElement.style.whiteSpace = "-moz-pre-wrap";
         pElement.style.wordWrap = "break-word";
         for (var key in variables.gameStepText) {
             pElement.innerHTML += variables.gameStepText[key] + "\n";
         }
-        gameTextDiv.insertBefore(pElement, gameTextDiv.firstChild);
+        // Append (newest at bottom) so mobile users scroll naturally
+        gameTextDiv.appendChild(pElement);
+        // Auto-scroll to the latest output
+        gameTextDiv.scrollTop = gameTextDiv.scrollHeight;
     };
+    Game.savedGame = {};
+    Game.commandHistory = [];
     return Game;
 }());
-Game.savedGame = {};
-Game.commandHistory = [];
 // Can be used to check if element present in array, or substring present in string 
 // second one is kind of hack
 // TODO remove hack and do properly
@@ -1235,7 +1242,7 @@ function remove(array, element) {
         array.splice(index, 1);
     }
 }
-var Command = (function () {
+var Command = /** @class */ (function () {
     function Command(str) {
         if (!str)
             var str = document.getElementById('command').value;
@@ -1324,157 +1331,157 @@ var Command = (function () {
         }
         return false;
     };
+    Command.commands = {
+        'inventory': {
+            desc: 'Print inventory',
+            alternatives: ['inv'],
+            execute: function (command) {
+                player.printInventory();
+            }
+        },
+        'look': {
+            desc: 'Give description of the room you\'re in',
+            alternatives: ['info'],
+            execute: function (command) {
+                Room.roomList[player.location].describe();
+            }
+        },
+        'examine': {
+            desc: 'Give description of the item',
+            extra: '[item]',
+            alternatives: ['ex', 'describe', 'desc'],
+            missedExtra: 'Please specify what to examine',
+            execute: function (command) {
+                player.examine(command.object);
+            }
+        },
+        'go': {
+            desc: 'Go to the specified direction',
+            alternatives: ['move', 'walk'],
+            extraDescription: '\tYou can also use north, east, south, west, up, down, n, e, s, w as well',
+            extra: '[direction]',
+            shortcut: {
+                'north': ['go', 'north'],
+                'n': ['go', 'north'],
+                'south': ['go', 'south'],
+                's': ['go', 'south'],
+                'east': ['go', 'east'],
+                'e': ['go', 'east'],
+                'west': ['go', 'west'],
+                'w': ['go', 'west'],
+                'up': ['go', 'up'],
+                'down': ['go', 'down'],
+            },
+            missedExtra: 'Please specify direction to go',
+            execute: function (command) {
+                if (player.moveTo(command.object))
+                    Room.roomList[player.location].describe();
+            }
+        },
+        'take': {
+            desc: 'Take an object',
+            alternatives: ['pick', 'fill'],
+            extra: '[object]',
+            missedExtra: 'Please specify what to take',
+            execute: function (command) {
+                player.take(command.object);
+            }
+        },
+        'put': {
+            desc: 'Put an object',
+            alternatives: ['place', 'keep', 'fix', 'pour'],
+            extra: '[object]',
+            missedExtra: 'Please specify what to put',
+            execute: function (command) {
+                player.put(command.object);
+            }
+        },
+        'open': {
+            desc: 'Try to open the object',
+            alternatives: ['unlock'],
+            extra: '[object]',
+            missedExtra: 'Please specify what to open',
+            execute: function (command) {
+                player.open(command.object);
+            }
+        },
+        'kill': {
+            desc: 'Try to kill the enemy',
+            alternatives: ['attack'],
+            extra: '[enemy]',
+            missedExtra: 'Please specify what to attack',
+            execute: function (command) {
+                player.kill(command.object);
+            }
+        },
+        'make': {
+            desc: 'Make object if the materials are present',
+            alternatives: ['craft', 'build'],
+            extra: '[object]',
+            missedExtra: 'Please specify what to make',
+            execute: function (command) {
+                player.make(command.object);
+            }
+        },
+        'ls': {
+            desc: 'Combination of inventory and look',
+            execute: function (command) {
+                player.printInventory();
+                Game.print(constants.seperator);
+                Room.roomList[player.location].describe();
+            }
+        },
+        'save': {
+            desc: 'Create a checkpoint that can be loaded later',
+            extra: '[tag]',
+            defaultExtra: 'saveGame',
+            noSave: true,
+            missedExtra: 'Please specify tag to save under',
+            execute: function (command) {
+                Game.save(command);
+            }
+        },
+        'load': {
+            desc: 'Load a checkpoint that has been saved',
+            extra: '[tag]',
+            noSave: true,
+            defaultExtra: 'saveGame',
+            missedExtra: 'Please specify tag to load from',
+            execute: function (command) {
+                Game.load(command);
+            }
+        },
+        'reset': {
+            desc: 'Start game from beginning again',
+            alternatives: ['redo', 'reboot', 'restart'],
+            execute: function (command) {
+                Game.reset();
+                Game.print('Game reset');
+            }
+        },
+        'clear': {
+            desc: 'Clear the screen of game text',
+            silent: true,
+            execute: function (command) {
+                Game.clear();
+            }
+        },
+        'help': {
+            desc: 'Print this help menu',
+            execute: function (command) {
+                Command.generateHelp();
+            }
+        },
+    };
     return Command;
 }());
-Command.commands = {
-    'inventory': {
-        desc: 'Print inventory',
-        alternatives: ['inv'],
-        execute: function (command) {
-            player.printInventory();
-        }
-    },
-    'look': {
-        desc: 'Give description of the room you\'re in',
-        alternatives: ['info'],
-        execute: function (command) {
-            Room.roomList[player.location].describe();
-        }
-    },
-    'examine': {
-        desc: 'Give description of the item',
-        extra: '[item]',
-        alternatives: ['ex', 'describe', 'desc'],
-        missedExtra: 'Please specify what to examine',
-        execute: function (command) {
-            player.examine(command.object);
-        }
-    },
-    'go': {
-        desc: 'Go to the specified direction',
-        alternatives: ['move', 'walk'],
-        extraDescription: '\tYou can also use north, east, south, west, up, down, n, e, s, w as well',
-        extra: '[direction]',
-        shortcut: {
-            'north': ['go', 'north'],
-            'n': ['go', 'north'],
-            'south': ['go', 'south'],
-            's': ['go', 'south'],
-            'east': ['go', 'east'],
-            'e': ['go', 'east'],
-            'west': ['go', 'west'],
-            'w': ['go', 'west'],
-            'up': ['go', 'up'],
-            'down': ['go', 'down'],
-        },
-        missedExtra: 'Please specify direction to go',
-        execute: function (command) {
-            if (player.moveTo(command.object))
-                Room.roomList[player.location].describe();
-        }
-    },
-    'take': {
-        desc: 'Take an object',
-        alternatives: ['pick', 'fill'],
-        extra: '[object]',
-        missedExtra: 'Please specify what to take',
-        execute: function (command) {
-            player.take(command.object);
-        }
-    },
-    'put': {
-        desc: 'Put an object',
-        alternatives: ['place', 'keep', 'fix', 'pour'],
-        extra: '[object]',
-        missedExtra: 'Please specify what to put',
-        execute: function (command) {
-            player.put(command.object);
-        }
-    },
-    'open': {
-        desc: 'Try to open the object',
-        alternatives: ['unlock'],
-        extra: '[object]',
-        missedExtra: 'Please specify what to open',
-        execute: function (command) {
-            player.open(command.object);
-        }
-    },
-    'kill': {
-        desc: 'Try to kill the enemy',
-        alternatives: ['attack'],
-        extra: '[enemy]',
-        missedExtra: 'Please specify what to attack',
-        execute: function (command) {
-            player.kill(command.object);
-        }
-    },
-    'make': {
-        desc: 'Make object if the materials are present',
-        alternatives: ['craft', 'build'],
-        extra: '[object]',
-        missedExtra: 'Please specify what to make',
-        execute: function (command) {
-            player.make(command.object);
-        }
-    },
-    'ls': {
-        desc: 'Combination of inventory and look',
-        execute: function (command) {
-            player.printInventory();
-            Game.print(constants.seperator);
-            Room.roomList[player.location].describe();
-        }
-    },
-    'save': {
-        desc: 'Create a checkpoint that can be loaded later',
-        extra: '[tag]',
-        defaultExtra: 'saveGame',
-        noSave: true,
-        missedExtra: 'Please specify tag to save under',
-        execute: function (command) {
-            Game.save(command);
-        }
-    },
-    'load': {
-        desc: 'Load a checkpoint that has been saved',
-        extra: '[tag]',
-        noSave: true,
-        defaultExtra: 'saveGame',
-        missedExtra: 'Please specify tag to load from',
-        execute: function (command) {
-            Game.load(command);
-        }
-    },
-    'reset': {
-        desc: 'Start game from beginning again',
-        alternatives: ['redo', 'reboot', 'restart'],
-        execute: function (command) {
-            Game.reset();
-            Game.print('Game reset');
-        }
-    },
-    'clear': {
-        desc: 'Clear the screen of game text',
-        silent: true,
-        execute: function (command) {
-            Game.clear();
-        }
-    },
-    'help': {
-        desc: 'Print this help menu',
-        execute: function (command) {
-            Command.generateHelp();
-        }
-    },
-};
-var Unique = (function () {
+var Unique = /** @class */ (function () {
     function Unique() {
     }
     return Unique;
 }());
 // Super of take, open, make classes
-var Interaction = (function (_super) {
+var Interaction = /** @class */ (function (_super) {
     __extends(Interaction, _super);
     function Interaction(interactionObject, name) {
         var _this = _super.call(this) || this;
@@ -1559,7 +1566,7 @@ var Interaction = (function (_super) {
     };
     return Interaction;
 }(Unique));
-var Take = (function (_super) {
+var Take = /** @class */ (function (_super) {
     __extends(Take, _super);
     function Take(takeObject, name) {
         var _this = _super.call(this, takeObject, name) || this;
@@ -1596,7 +1603,7 @@ var Take = (function (_super) {
     };
     return Take;
 }(Interaction));
-var Open = (function (_super) {
+var Open = /** @class */ (function (_super) {
     __extends(Open, _super);
     function Open(openObject, name) {
         var _this = _super.call(this, openObject, name) || this;
@@ -1627,7 +1634,7 @@ var Open = (function (_super) {
     };
     return Open;
 }(Interaction));
-var Kill = (function (_super) {
+var Kill = /** @class */ (function (_super) {
     __extends(Kill, _super);
     function Kill(openObject, name) {
         var _this = _super.call(this, openObject, name) || this;
@@ -1688,7 +1695,7 @@ var Kill = (function (_super) {
     };
     return Kill;
 }(Interaction));
-var Make = (function (_super) {
+var Make = /** @class */ (function (_super) {
     __extends(Make, _super);
     function Make(makeObject, name) {
         var _this = _super.call(this, makeObject, name) || this;
@@ -1706,7 +1713,7 @@ var Make = (function (_super) {
     };
     return Make;
 }(Interaction));
-var Put = (function (_super) {
+var Put = /** @class */ (function (_super) {
     __extends(Put, _super);
     function Put(putObject, name) {
         var _this = _super.call(this, putObject, name) || this;
@@ -1750,7 +1757,7 @@ var Put = (function (_super) {
     };
     return Put;
 }(Interaction));
-var Reward = (function () {
+var Reward = /** @class */ (function () {
     function Reward(rewardObject) {
         this.health = 0;
         this.noremove = false;
@@ -1819,7 +1826,7 @@ var Reward = (function () {
     };
     return Reward;
 }());
-var FindExit = (function () {
+var FindExit = /** @class */ (function () {
     function FindExit(exitObject) {
         this.room = '';
         this.direction = '';
@@ -1840,7 +1847,7 @@ var FindExit = (function () {
     };
     return FindExit;
 }());
-var Candidate = (function (_super) {
+var Candidate = /** @class */ (function (_super) {
     __extends(Candidate, _super);
     function Candidate(candidateObject) {
         var _this = _super.call(this, candidateObject) || this;
@@ -1869,7 +1876,7 @@ var Candidate = (function (_super) {
     };
     return Candidate;
 }(Reward));
-var Weakness = (function (_super) {
+var Weakness = /** @class */ (function (_super) {
     __extends(Weakness, _super);
     function Weakness(weaknessObject) {
         var _this = _super.call(this, weaknessObject) || this;
@@ -1911,7 +1918,7 @@ var Weakness = (function (_super) {
     };
     return Weakness;
 }(Reward));
-var Interactible = (function (_super) {
+var Interactible = /** @class */ (function (_super) {
     __extends(Interactible, _super);
     function Interactible() {
         var _this = _super.call(this) || this;
@@ -1997,12 +2004,12 @@ var Interactible = (function (_super) {
             }
         }
     };
+    // public amount;
+    Interactible.interactibleListObject = {};
+    Interactible.interactibleList = {};
     return Interactible;
 }(Unique));
-// public amount;
-Interactible.interactibleListObject = {};
-Interactible.interactibleList = {};
-var Character = (function (_super) {
+var Character = /** @class */ (function (_super) {
     __extends(Character, _super);
     function Character(name) {
         var _this = _super.call(this) || this;
@@ -2283,7 +2290,7 @@ var Character = (function (_super) {
     };
     return Character;
 }(Unique));
-var Exit = (function () {
+var Exit = /** @class */ (function () {
     function Exit(exitObject) {
         this.direction = exitObject.direction;
         this.to = exitObject.to;
@@ -2310,7 +2317,7 @@ var Exit = (function () {
     };
     return Exit;
 }());
-var Room = (function (_super) {
+var Room = /** @class */ (function (_super) {
     __extends(Room, _super);
     function Room(name) {
         var _this = _super.call(this) || this;
@@ -2498,10 +2505,10 @@ var Room = (function (_super) {
             }
         }
     };
+    Room.roomListObject = {};
+    Room.roomList = {};
     return Room;
 }(Unique));
-Room.roomListObject = {};
-Room.roomList = {};
 function doCommand() {
     var command = new Command();
     Game.execute(command);
@@ -2529,7 +2536,9 @@ window.onload = function () {
         navbarTabs.innerHTML += '<li id="game' + key + '" class="" onclick="changeGame(' + key + ')"><a href="#">' + game.name + '</a></li>';
     }
     // Focus on input
-    document.getElementById('controls').innerHTML = Command.generateControlString();
+    var controlsEl = document.getElementById('controls');
+    if (controlsEl)
+        controlsEl.innerHTML = Command.generateControlString();
     document.getElementById('command').focus();
     changeGame(0);
 };
